@@ -4,7 +4,8 @@ BRW_REF="http://academic.nutc.edu.tw/curriculum/show_subject/show_subject_form.a
 ENC_CONV="iconv -f big5 -t utf8"
 LN_CONV="sed s/\\r//g"
 SAV_COOKIE="cookie.txt"
-OUTPUT="LessonLits.txt"
+OUTPUT="LessonList.txt"
+VOL="1"
 
 function ChineseNumber() {
 	case $1 in
@@ -45,7 +46,7 @@ function conv_2_big5(){
 
 function tab_header(){
 	## 只是產生標題列而已XD
-	echo "學制	修課班級	學年/學期	必選修	TIMETABLE_URL	上課時間	修課科目	授課老師	學分數	時數	修課人數	教學大綱" > "$OUTPUT"
+	echo "學制	修課班級	學年/學期	必選修	TIMETABLE_URL	上課時間	修課科目	授課教師課表	授課老師	學分數	時數	上限人數	下限人數	修課人數	教學大綱	是否提供外系修課	備註" > "$OUTPUT"
 }
 
 function get_lesson(){
@@ -61,13 +62,13 @@ function get_lesson(){
 	cat show_subject_choose.asp | sed s/\\r//g | grep table | sed s/\<\\/TR\>/\\n/g | grep -v 修課班級 | \
 	sed s/\<\\/TD\>/\\t/g | sed s/\<a[^=]*\.[^\?]*//g |  sed s/\ \>教學大綱"<\/a>"//g | \
 	sed s/\<a[^=]*=rot_title_time\.asp//g | sed -e :a -e 's/<[^>]*>//g;/</N;//ba' | sed -e s/"?class[^>]*>"//g | \
-	sed -e s/'※.*'//g | sed -e s/'此科'/$1/g | grep -v '^ *$' | sed s/\ \>/\\t/g  >> ${OUTPUT}
-	#rm show_subject_choose.asp
+	sed -e s/'※.*'//g | sed -e s/'此科'/$1/g | grep -v '^ *$' | sed s/\ \>/\\t/g >> ${OUTPUT}
+	rm show_subject_choose.asp
 }
 
 function get_list(){
 	## 取得一份完整的課程清單
-	curl http://academic.nutc.edu.tw/curriculum/show_subject/show_subject_form.asp?show_vol=2 -D "$SAV_COOKIE" -A "$BREW_UA" -e "$BRW_REF" | $ENC_CONV > /dev/null
+	curl http://academic.nutc.edu.tw/curriculum/show_subject/show_subject_form.asp?show_vol=${vol} -D "$SAV_COOKIE" -A "$BREW_UA" -e "$BRW_REF" | $ENC_CONV > /dev/null
 	curl http://academic.nutc.edu.tw/curriculum/show_subject/check_show_select.asp -D $SAV_COOKIE -b "$SAV_COOKIE" -A "$BREW_UA" -e "$BRW_REF" -d "show_radio=2&show_select6=3&show_select7=3&show_select8=3&Submit=%A1%40%A4U%A1%40%A4%40%A1%40%A8B%A1%40" | $ENC_CONV > /dev/null
 	curl http://academic.nutc.edu.tw/curriculum/show_subject/show_subject_form_step2.asp -b "$SAV_COOKIE" -A "$BREW_UA" -e "$BRW_REF" | $ENC_CONV > show_subject_form_step2.asp 
 
@@ -78,7 +79,7 @@ function get_list(){
 		DATA_LINE=$(($DATA_LINE+1))
 		
 		## 講網頁表格格式轉換成簡單的文字清單
-		cat show_subject_form_step2.asp | sed s/\\r//g | sed -n $DATA_LINE,$DATA_LINE"p" | sed 's/<option[^>]*>/\n/g' | sed -e :a -e 's/<[^>]*>//g;/</N;//ba' | grep -v '^ *$' | sed s/\ $//g | sed s/$//g > Lessons.lst
+		cat show_subject_form_step2.asp | sed s/\\r//g | sed -n $DATA_LINE,$DATA_LINE"p" | sed 's/<option[^>]*>/\n/g' | sed -e :a -e 's/<[^>]*>//g;/</N;//ba' | grep -v '^ *$' | sed s/\ $//g | sed s/$//g | sed -e s/\(.*領域\)//g > Lessons.lst
 		
 	fi
 	rm show_subject_form_step2.asp 
@@ -147,7 +148,7 @@ rm $SAV_COOKIE
 
 ## 取得網址清單準備開始查時間
 list_URL_TIME
-cp "LessonLits.txt" "LessonLits_noTime.txt"
+#cp "${OUTPUT}" "LessonLits_noTime.txt"
 
 ## 開始查時間
 for URL in $(cat URL_TIME.txt)
@@ -158,5 +159,5 @@ done
 rm time.html
 rm time.txt
 rm URL_TIME.txt
-
-cat LessonLits.txt | sed s/\\t/\",\"/g | sed s/^/\"/g | sed s/$/\"/g > LessonLits.csv
+#
+cat ${OUTPUT} | sed s/\\t/\",\"/g | sed s/^/\"/g | sed s/$/\"/g > LessonList.csv

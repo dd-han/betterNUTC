@@ -55,10 +55,15 @@ function get_lesson(){
 	rm "$SAV_COOKIE"
 	
 	## 把HTML變成以tab分隔的txt
+	#cat show_subject_choose.asp | sed s/\\r//g | grep table | sed s/\<\\/TR\>/\\n/g | grep -v 修課班級 | \
+	#sed s/\<\\/TD\>/\\t/g | sed s/\<a[^=]*=rot_show_teach_flow\.asp//g | sed s/\ \>教學大綱"<\/a>"//g | \
+	#sed s/\<a[^=]*=rot_title_time\.asp//g | sed -e :a -e 's/<[^>]*>//g;/</N;//ba' | \
+	#sed -e s/'此科目'/"$1"/g | grep -v '^ *$' | sed s/\ \>/\\t/g >> "$OUTPUT"
 	cat show_subject_choose.asp | sed s/\\r//g | grep table | sed s/\<\\/TR\>/\\n/g | grep -v 修課班級 | \
-	sed s/\<\\/TD\>/\\t/g | sed s/\<a[^=]*=rot_show_teach_flow\.asp//g | sed s/\ \>教學大綱"<\/a>"//g | \
-	sed s/\<a[^=]*=rot_title_time\.asp//g | sed -e :a -e 's/<[^>]*>//g;/</N;//ba' | \
-	sed -e s/'此科目'/"$1"/g | grep -v '^ *$' | sed s/\ \>/\\t/g >> "$OUTPUT"
+	sed s/\<\\/TD\>/\\t/g | sed s/\<a[^=]*\.[^\?]*//g |  sed s/\ \>教學大綱"<\/a>"//g | \
+	sed s/\<a[^=]*=rot_title_time\.asp//g | sed -e :a -e 's/<[^>]*>//g;/</N;//ba' | sed -e s/"?class[^>]*>"//g | \
+	sed -e s/'※.*'//g | sed -e s/'此科'/$1/g | grep -v '^ *$' | sed s/\ \>/\\t/g  >> ${OUTPUT}
+
 	rm show_subject_choose.asp
 }
 
@@ -71,8 +76,9 @@ function get_list(){
 	DATA_LINE=$(($DATA_LINE+1))
 	
 	## 講網頁表格格式轉換成簡單的文字清單
-	cat show_subject_form.asp | $ENC_CONV | sed s/\\r//g | sed -n $DATA_LINE,$DATA_LINE"p" | sed 's/<option[^>]*>/\n/g' | sed -e :a -e 's/<[^>]*>//g;/</N;//ba' | grep -v '^ *$' | sed s/\ $//g > Lessons.lst
-	#rm show_subject_form.asp
+	#cat show_subject_form.asp | $ENC_CONV | sed s/\\r//g | sed -n $DATA_LINE,$DATA_LINE"p" | sed 's/<option[^>]*>/\n/g' | sed -e :a -e 's/<[^>]*>//g;/</N;//ba' | grep -v '^ *$' | sed s/\ $//g > Lessons.lst
+	cat show_subject_form.asp | $ENC_CONV | sed s/\\r//g | sed -n $DATA_LINE,$DATA_LINE"p" | sed 's/<option size=3 VALUE=/\n/g' | sed 's/>.*$//g' | sed -e :a -e 's/<[^>]*>//g;/</N;//ba' | grep -v '^ *$' | sed s/\ $//g > Lessons.lst
+	rm show_subject_form.asp
 }
 
 function list_URL(){
@@ -114,7 +120,7 @@ function get_LessTime() {
 	done
 	#echo $time
 	
-	sed -i "s/$1/$time/g" "$OUTPUT"
+	sed -i "s/$1/$1	$time/g" "$OUTPUT"
 }
 
 ## 取得課程清單"$OUTPUT"
